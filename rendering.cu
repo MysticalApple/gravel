@@ -1,12 +1,28 @@
-#include <stdio.h>
+#include <stdint.h>
+
 #include "rendering.h"
 
-__global__ void kernelHello(void)
+__global__ void kernelDrawPixels(void *memory, int width, int height, double xOffset, double yOffset)
 {
-    printf("Hello, World!\n");
-}
+    int x = threadIdx.x;
+    int y = blockIdx.x;
 
-void HelloWorld(void)
-{
-    kernelHello<<<1, 1>>>();
+    uint8_t red, green, blue;
+
+    red = x - (int8_t)xOffset;
+    green = y - (int8_t)yOffset;
+    blue = (int8_t)xOffset + (y * (int8_t)yOffset);
+
+    if (!((x + (int8_t)xOffset) % 256) || !((y + (int8_t)yOffset) % 256))
+    {
+        red = 255;
+        green = 255;
+        blue = 255;
+    }
+
+    uint32_t *pixel = (uint32_t *)memory;
+    pixel += height * y;
+    pixel += x;
+
+    *pixel = (red << 16) | (green << 8) | (blue << 0);
 }
