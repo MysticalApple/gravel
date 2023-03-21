@@ -1,0 +1,11 @@
+.vscode/
+*.exe
+*.obj
+*.exp
+*.lib
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
