@@ -14,3 +14,4 @@ rendering.obj: rendering.cu rendering.h
 
 clean:
 	del *.obj *.lib *.exp
+	
