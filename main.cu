@@ -82,7 +82,6 @@ win32_window_dimensions win32_GetWindowDimensions(HWND windowHandle);
 
 static BOOL running;
 
-// @formatter:on
 /* Main Windows entrypoint */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow)
 {
@@ -250,7 +249,7 @@ LRESULT CALLBACK win32_WindowProc(HWND windowHandle, UINT uMsg, WPARAM wParam, L
 
     default:
         break;
-    } // @formatter:on
+    }
 
     return DefWindowProc(windowHandle, uMsg, wParam, lParam);
 }
