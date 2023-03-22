@@ -126,4 +126,3 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     //     row += buffer->info.bmiHeader.biWidth * buffer->bytesPerPixel;
     // }
 }
-
