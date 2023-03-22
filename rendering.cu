@@ -21,8 +21,7 @@ __global__ void kernelDrawPixels(void *memory, int width, int height, double xOf
     }
 
     uint32_t *pixel = (uint32_t *)memory;
-    pixel += height * y;
-    pixel += x;
+    pixel += y * width + x;
 
     *pixel = (red << 16) | (green << 8) | (blue << 0);
 }
