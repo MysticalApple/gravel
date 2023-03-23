@@ -1,0 +1,42 @@
+************************************* Invoked: Wed Mar 22 21:09:59 2023
+[0] Arguments: c:\Users\funaj\Downloads\msys2-x86_64-20230318.exe, -std=c++98, -m64, -Wp,-v, -E, -dM, -x, c++, nul
+[4] Operations sanity check succeeded.
+[8] Using metadata cache from "C:/Users/funaj/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[8] Found 0 cached items.
+[8] Language: en-US
+[8] Script file does not exist.
+************************************* Invoked: Wed Mar 22 21:09:59 2023
+[0] Arguments: c:\Users\funaj\Downloads\msys2-x86_64-20230318.exe, -std=c++98, -m32, -Wp,-v, -E, -dM, -x, c++, nul
+[6] Operations sanity check succeeded.
+[11] Using metadata cache from "C:/Users/funaj/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[11] Found 0 cached items.
+[11] Language: en-US
+[11] Script file does not exist.
+************************************* Invoked: Wed Mar 22 21:09:59 2023
+[0] Arguments: c:\Users\funaj\Downloads\msys2-x86_64-20230318.exe, -std=c++98, -Wp,-v, -E, -dM, -x, c++, nul
+[5] Operations sanity check succeeded.
+[9] Using metadata cache from "C:/Users/funaj/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[9] Found 0 cached items.
+[9] Language: en-US
+[9] Script file does not exist.
+************************************* Invoked: Wed Mar 22 21:10:05 2023
+[0] Arguments: c:\Users\funaj\Downloads\msys2-x86_64-20230318.exe, -std=c17, -m64, -Wp,-v, -E, -dM, -x, c, nul
+[5] Operations sanity check succeeded.
+[8] Using metadata cache from "C:/Users/funaj/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[8] Found 0 cached items.
+[8] Language: en-US
+[8] Script file does not exist.
+************************************* Invoked: Wed Mar 22 21:10:05 2023
+[0] Arguments: c:\Users\funaj\Downloads\msys2-x86_64-20230318.exe, -std=c17, -m32, -Wp,-v, -E, -dM, -x, c, nul
+[5] Operations sanity check succeeded.
+[8] Using metadata cache from "C:/Users/funaj/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[8] Found 0 cached items.
+[8] Language: en-US
+[8] Script file does not exist.
+************************************* Invoked: Wed Mar 22 21:10:05 2023
+[0] Arguments: c:\Users\funaj\Downloads\msys2-x86_64-20230318.exe, -std=c17, -Wp,-v, -E, -dM, -x, c, nul
+[5] Operations sanity check succeeded.
+[8] Using metadata cache from "C:/Users/funaj/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[8] Found 0 cached items.
+[8] Language: en-US
+[8] Script file does not exist.
