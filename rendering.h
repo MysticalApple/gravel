@@ -15,5 +15,11 @@ typedef struct
     double z;
 } VERTEX;
 
-// __global__ void kernelDrawPixels(void *memory, int width, int height, double xOffset, double yOffset);
+typedef struct
+{
+    unsigned short a;
+    unsigned short b;
+} EDGE;
+
+
 __global__ void kernelTransform(double *transformation, VERTEX *vertices, VERTEX *transformedVertices);

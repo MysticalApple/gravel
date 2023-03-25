@@ -7,17 +7,16 @@
 #include <math.h>
 #include <time.h>
 
-// static int8_t sign(int32_t x)
-// {
-//     return x >> 31 ? -1 : 1;
-// }
+static void DrawPoint(win32_offscreen_buffer *buffer, int x0, int y0)
+{
+    uint32_t *pixel = (uint32_t *)buffer->memory + (int)y0 * buffer->info.bmiHeader.biWidth + (int)x0;
+
+    *pixel = INT_MAX;
+}
 
 /* NOTE: The following code is completely illogical. */
 void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t timeInit)
 {
-    static double xOffset;
-    static double yOffset;
-
     /* ========== *
      *  FPS INFO  *
      * ========== */
@@ -85,6 +84,7 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     /* Change to reading from file later
        Probably move to main, only needs to run once */
     const static int vertexCount = 8;
+    const static int edgeCount = 12;
 
     static VERTEX vertices[vertexCount] =
         {
@@ -98,13 +98,27 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
             {400, 400, 0},
         };
 
-    static double transformation[4 * 4] = {1, 0, 0, 0,
-                                           0, 1, 0, 0,
-                                           0, 0, 1, 0,
+    static EDGE edges[edgeCount] = {
+        {0, 3},
+        {0, 4},
+        {0, 7},
+        {1, 3},
+        {1, 5},
+        {1, 7},
+        {2, 3},
+        {2, 4},
+        {2, 5},
+        {6, 4},
+        {6, 5},
+        {6, 7}
+    };
+
+    static double transformation[4 * 4] = {0.866025, 0, -0.5, 400,
+                                           -0.25, 0.866025, -0.433013, 400,
+                                           0.433013, 0.5, 0.75, 1000,
                                            0, 0, 0, 1};
 
     VERTEX transformedVertices[vertexCount];
-
 
     /* ===================== *
      *    RENDERING ZONE     *
@@ -122,66 +136,53 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     VERTEX *devTransformedVertices;
     cudaMalloc(&devTransformedVertices, vertexCount * sizeof(VERTEX));
 
-    kernelTransform<<<1, vertexCount>>>(devTransformation, devVertices, devTransformedVertices);
+    kernelTransform<<<vertexCount, 3>>>(devTransformation, devVertices, devTransformedVertices);
 
     cudaMemcpy(transformedVertices, devTransformedVertices, vertexCount * sizeof(VERTEX), cudaMemcpyDeviceToHost);
+
+    cudaFree(devVertices);
+    cudaFree(devTransformedVertices);
+    cudaFree(devTransformation);
+
 
     /* Clears window to black */
     memset(buffer->memory, 0, buffer->info.bmiHeader.biWidth * buffer->info.bmiHeader.biHeight * buffer->bytesPerPixel);
 
-    /* Draws each point to the window as a single white pixel
-       Might change to be a slightly larger circle later      */
-    for (int i = 0; i < vertexCount; i++)
+    /* Bresenham Line Drawing Algorithm */
+    /* Copied from https://gist.github.com/bert/1085538#file-plot_line-c */
+    for (int i = 0; i < edgeCount; i++)
     {
-        VERTEX vertex = transformedVertices[i];
-        //printf("X: %f, Y: %f, Z: %f\n", vertex.x, vertex.y, vertex.z);
+        EDGE edge = edges[i];
 
-        if(vertex.x < 0 || vertex.y < 0 || vertex.z < 0) continue;
+        
+        int x0 = (int)transformedVertices[edge.a].x;
+        int y0 = (int)transformedVertices[edge.a].y;
+        int x1 = (int)transformedVertices[edge.b].x;
+        int y1 = (int)transformedVertices[edge.b].y;
 
-        uint32_t *pixel = (uint32_t *)buffer->memory + (int)vertex.y * buffer->info.bmiHeader.biWidth + (int)vertex.x;
+        int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy, e2; /* error value e_xy */
 
-        *pixel = INT_MAX;
+        while (true)
+        {
+            DrawPoint(buffer, x0, y0);
+
+            if (x0 == x1 && y0 == y1) break;
+            
+            e2 = 2 * err;
+            if (e2 >= dy)
+            {
+                err += dy;
+                x0 += sx;
+            } /* e_xy+e_x > 0 */
+            
+            if (e2 <= dx)
+            {
+                err += dx;
+                y0 += sy;
+            } /* e_xy+e_y < 0 */
+        }
     }
 
-
-    // int bitmapMemorySize = buffer->info.bmiHeader.biWidth * buffer->info.bmiHeader.biHeight * buffer->bytesPerPixel;
-
-    // void *devBufferMemory;
-    // cudaMalloc(&devBufferMemory, bitmapMemorySize);
-    // cudaMemcpy(devBufferMemory, buffer->memory, bitmapMemorySize, cudaMemcpyHostToDevice);
-
-    // kernelDrawPixels<<<buffer->info.bmiHeader.biHeight, buffer->info.bmiHeader.biWidth>>>(devBufferMemory,
-    //                                                                                       buffer->info.bmiHeader.biWidth, buffer->info.bmiHeader.biHeight,
-    //                                  /* Wide code is good, right? */                      xOffset, yOffset);
-
-    // cudaMemcpy(buffer->memory, devBufferMemory, bitmapMemorySize, cudaMemcpyDeviceToHost);
-    // cudaFree(devBufferMemory);
-
-    /* Keeping non-parallel version for my own sanity */
-
-    // uint8_t *row = (uint8_t *)buffer->memory;
-
-    // for (int y = 0; y < buffer->info.bmiHeader.biHeight; y++)
-    // {
-    //     uint32_t *pixel = (uint32_t *)row;
-    //     for (int x = 0; x < buffer->info.bmiHeader.biWidth; x++)
-    //     {
-    //         uint8_t red, green, blue;
-
-    //         red = x - (int8_t)xOffset;
-    //         green = y - (int8_t)yOffset;
-    //         blue = (int8_t)xOffset + (y * (int8_t)yOffset);
-
-    //         if (!(uint8_t)(x + (uint8_t)xOffset) || !(uint8_t)(y + (uint8_t)yOffset))
-    //         {
-    //             red = 255;
-    //             green = 255;
-    //             blue = 255;
-    //         }
-
-    //         *pixel++ = (red << 16) | (green << 8) | (blue << 0); // pixel format is xRGB
-    //     }
-
-    //     row += buffer->info.bmiHeader.biWidth * buffer->bytesPerPixel;
-    // }
 }
