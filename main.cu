@@ -77,8 +77,8 @@ typedef struct
 } win32_window_dimensions;
 win32_window_dimensions win32_GetWindowDimensions(HWND windowHandle);
 
-#define WIDTH 1024
-#define HEIGHT 1024
+#define WIDTH 1920
+#define HEIGHT 1080
 
 static BOOL running;
 
