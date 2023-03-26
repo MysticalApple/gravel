@@ -112,7 +112,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
         0,
         CLASS_NAME,
         L"Graphics Testing",
-        WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX,
 
         /* Size and position */
         CW_USEDEFAULT, CW_USEDEFAULT, WIDTH + 16, HEIGHT + 39, // TODO: Portability
