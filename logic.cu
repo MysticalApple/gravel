@@ -118,6 +118,30 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
                                            0.433013, 0.5, 0.75, 1000,
                                            0, 0, 0, 1};
 
+    double inputTransformation[4 * 4] = {0.999998, 0, -0.00174533, 1.74594,
+                                         0, 1, 0, 0,
+                                         0.00174533, 0, 0.999998, -0.696608,
+                                         0, 0, 0, 1};
+
+    double *devInputTransformation;
+    cudaMalloc(&devInputTransformation, 4 * 4 * sizeof(double));
+    cudaMemcpy(devInputTransformation, inputTransformation, 4 * 4 * sizeof(double), cudaMemcpyHostToDevice);
+
+    double *devTransformation;
+    cudaMalloc(&devTransformation, 4 * 4 * sizeof(double));
+    cudaMemcpy(devTransformation, transformation, 4 * 4 * sizeof(double), cudaMemcpyHostToDevice);
+
+    double *devResult;
+    cudaMalloc(&devResult, 4 * 4 * sizeof(double));
+
+    dim3 blockDim(4, 4);
+    kernelCompose<<<1, blockDim>>>(devInputTransformation, devTransformation, devResult);
+
+    cudaMemcpy(transformation, devResult, 4 * 4 * sizeof(double), cudaMemcpyDeviceToHost);
+
+    cudaFree(devInputTransformation);
+    cudaFree(devTransformation);
+
     VERTEX transformedVertices[vertexCount];
 
     /* ===================== *
@@ -129,20 +153,16 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     cudaMalloc(&devVertices, vertexCount * sizeof(VERTEX));
     cudaMemcpy(devVertices, vertices, vertexCount * sizeof(VERTEX), cudaMemcpyHostToDevice);
 
-    double *devTransformation;
-    cudaMalloc(&devTransformation, 4 * 4 * sizeof(double));
-    cudaMemcpy(devTransformation, transformation, 4 * 4 * sizeof(double), cudaMemcpyHostToDevice);
-
     VERTEX *devTransformedVertices;
     cudaMalloc(&devTransformedVertices, vertexCount * sizeof(VERTEX));
 
-    kernelTransform<<<vertexCount, 3>>>(devTransformation, devVertices, devTransformedVertices);
+    kernelTransform<<<vertexCount, 3>>>(devResult, devVertices, devTransformedVertices);
 
     cudaMemcpy(transformedVertices, devTransformedVertices, vertexCount * sizeof(VERTEX), cudaMemcpyDeviceToHost);
 
     cudaFree(devVertices);
     cudaFree(devTransformedVertices);
-    cudaFree(devTransformation);
+    cudaFree(devResult);
 
 
     /* Clears window to black */
@@ -166,7 +186,8 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
 
         while (true)
         {
-            DrawPoint(buffer, x0, y0);
+            if (x0 < buffer->info.bmiHeader.biWidth && x0 >= 0 && y0 < buffer->info.bmiHeader.biHeight && y0 >= 0 && transformedVertices[edge.a].z >= 0 && transformedVertices[edge.b].z >= 0)
+                DrawPoint(buffer, x0, y0);
 
             if (x0 == x1 && y0 == y1) break;
             

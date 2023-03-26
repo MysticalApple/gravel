@@ -23,3 +23,4 @@ typedef struct
 
 
 __global__ void kernelTransform(double *transformation, VERTEX *vertices, VERTEX *transformedVertices);
+__global__ void kernelCompose(double *a, double *b, double *result);

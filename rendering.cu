@@ -21,3 +21,15 @@ __global__ void kernelTransform(double *transformation, VERTEX *vertices, VERTEX
     }
 }
 
+/* Composes two 4x4 transformation matrices */
+__global__ void kernelCompose(double *a, double *b, double *result)
+{
+    int row = threadIdx.y;
+    int col = threadIdx.x;
+    double c_value = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        c_value += a[row * 4 + i] * b[i * 4 + col];
+    }
+    result[row * 4 + col] = c_value;
+}
