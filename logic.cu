@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <time.h>
 
@@ -39,18 +40,18 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     /* ================ *
      *  INPUT HANDLING  *
      * ================ */
-    BOOL dPadUp = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
-    BOOL dPadDown = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-    BOOL dPadLeft = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-    BOOL dPadRight = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
-    BOOL start = (gamepad.wButtons & XINPUT_GAMEPAD_START);
-    BOOL back = (gamepad.wButtons & XINPUT_GAMEPAD_BACK);
-    BOOL shoulderLeft = (gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-    BOOL shoulderRight = (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-    BOOL buttonA = (gamepad.wButtons & XINPUT_GAMEPAD_A);
-    BOOL buttonB = (gamepad.wButtons & XINPUT_GAMEPAD_B);
-    BOOL buttonX = (gamepad.wButtons & XINPUT_GAMEPAD_X);
-    BOOL buttonY = (gamepad.wButtons & XINPUT_GAMEPAD_Y);
+    bool dPadUp = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
+    bool dPadDown = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+    bool dPadLeft = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+    bool dPadRight = (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+    bool start = (gamepad.wButtons & XINPUT_GAMEPAD_START);
+    bool back = (gamepad.wButtons & XINPUT_GAMEPAD_BACK);
+    bool shoulderLeft = (gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+    bool shoulderRight = (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+    bool buttonA = (gamepad.wButtons & XINPUT_GAMEPAD_A);
+    bool buttonB = (gamepad.wButtons & XINPUT_GAMEPAD_B);
+    bool buttonX = (gamepad.wButtons & XINPUT_GAMEPAD_X);
+    bool buttonY = (gamepad.wButtons & XINPUT_GAMEPAD_Y);
 
     int16_t thumbStickLeftX = gamepad.sThumbLX;
     int16_t thumbStickLeftY = gamepad.sThumbLY;
@@ -65,21 +66,140 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     //    Vibration.wRightMotorSpeed = triggerRight * USHRT_MAX / UCHAR_MAX;
     //    XInputSetState(0, &Vibration);
 
-    // const int speed = 5;
+    const int speed = 1;
+    const size_t transformationMatrixSize = 4 * 4 * sizeof(double);
+    dim3 matrixDim(4, 4);
 
-    // if (abs(thumbStickLeftX) > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
-    // {
-    //     xOffset +=
-    //         speed * sign(thumbStickLeftX) * (abs(thumbStickLeftX) - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) /
-    //         (double)(SHRT_MAX - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-    // }
+    static double transformation[4 * 4] = {1, 0, 0, 0,
+                                           0, 1, 0, 0,
+                                           0, 0, 1, 0,
+                                           0, 0, 0, 1};
 
-    // if (abs(thumbStickLeftY) > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
-    // {
-    //     yOffset +=
-    //         speed * sign(thumbStickLeftY) * (abs(thumbStickLeftY) - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) /
-    //         (double)(SHRT_MAX - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-    // }
+    double inputTransformation[4 * 4] = {1, 0, 0, 0,
+                                         0, 1, 0, 0,
+                                         0, 0, 1, 0,
+                                         0, 0, 0, 1};
+
+    double *devInputTransformation;
+    cudaMalloc(&devInputTransformation, transformationMatrixSize);
+    cudaMemcpy(devInputTransformation, inputTransformation, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+    double *devResult;
+    cudaMalloc(&devResult, transformationMatrixSize);
+
+    /* Panning */
+    if (abs(thumbStickRightX) > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+    {
+        double theta = copysign(speed, thumbStickRightX) * (abs(thumbStickRightX) - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) / (double)(SHRT_MAX - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+        printf("%lf\n", theta);
+        theta = theta * 2 * M_PI / 360;
+
+        double rotateY[4 * 4] = {cos(theta), 0, -sin(theta), 0,
+                                 0, 1, 0, 0,
+                                 sin(theta), 0, cos(theta), 0,
+                                 0, 0, 0, 1};
+
+        double *devRotateY;
+        cudaMalloc(&devRotateY, transformationMatrixSize);
+        cudaMemcpy(devRotateY, rotateY, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+        kernelCompose<<<1, matrixDim>>>(devRotateY, devInputTransformation, devResult);
+
+        cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+
+        cudaFree(rotateY);
+    }
+
+    /* Tilting */
+    if (abs(thumbStickRightY) > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+    {
+        double theta = copysign(speed, thumbStickRightY) * (abs(thumbStickRightY) - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) / (double)(SHRT_MAX - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+        printf("%lf\n", theta);
+        theta = theta * 2 * M_PI / 360;
+
+        double rotateX[4 * 4] = {1, 0, 0, 0,
+                                 0, cos(theta), -sin(theta), 0,
+                                 0, sin(theta), cos(theta), 0,
+                                 0, 0, 0, 1};
+
+        double *devRotateX;
+        cudaMalloc(&devRotateX, transformationMatrixSize);
+        cudaMemcpy(devRotateX, rotateX, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+        kernelCompose<<<1, matrixDim>>>(devRotateX, devInputTransformation, devResult);
+
+        cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+
+        cudaFree(rotateX);
+    }
+
+    /* Moving along x-axis */
+    if (abs(thumbStickLeftX) > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+    {
+        double translateX[4 * 4] = {1, 0, 0, -copysign(speed, thumbStickLeftX) * (abs(thumbStickLeftX) - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) / (double)(SHRT_MAX - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE),
+                                    0, 1, 0, 0,
+                                    0, 0, 1, 0,
+                                    0, 0, 0, 1};
+
+        double *devTranslateX;
+        cudaMalloc(&devTranslateX, transformationMatrixSize);
+        cudaMemcpy(devTranslateX, translateX, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+        kernelCompose<<<1, matrixDim>>>(devTranslateX, devInputTransformation, devResult);
+
+        cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+        
+        cudaFree(devTranslateX);
+    }
+
+    /* Moving along z-axis */
+    if (abs(thumbStickLeftY) > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+    {
+        double translateZ[4 * 4] = {1, 0, 0, 0,
+                                    0, 1, 0, 0,
+                                    0, 0, 1, -copysign(speed, thumbStickLeftY) * (abs(thumbStickLeftY) - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) / (double)(SHRT_MAX - XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE),
+                                    0, 0, 0, 1};
+
+        double *devTranslateZ;
+        cudaMalloc(&devTranslateZ, transformationMatrixSize);
+        cudaMemcpy(devTranslateZ, translateZ, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+        kernelCompose<<<1, matrixDim>>>(devTranslateZ, devInputTransformation, devResult);
+
+        cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+
+        cudaFree(devTranslateZ);
+    }
+
+    /* Moving along y-axis */
+    if (buttonA || buttonB)
+    {
+        double translateY[4 * 4] = {1, 0, 0, 0,
+                                    0, 1, 0, (double)speed * (buttonA - buttonB),
+                                    0, 0, 1, 0,
+                                    0, 0, 0, 1};
+
+        double *devTranslateY;
+        cudaMalloc(&devTranslateY, transformationMatrixSize);
+        cudaMemcpy(devTranslateY, translateY, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+        kernelCompose<<<1, matrixDim>>>(devTranslateY, devInputTransformation, devResult);
+
+        cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+
+        cudaFree(devTranslateY);
+    }
+
+    /* Resets camera */
+    if (back)
+    {
+        double identity[4 * 4] = {1, 0, 0, 0,
+                                  0, 1, 0, 0,
+                                  0, 0, 1, 0,
+                                  0, 0, 0, 1};
+                                  
+        memcpy(transformation, identity, transformationMatrixSize);
+    }
 
     /* Change to reading from file later
        Probably move to main, only needs to run once */
@@ -113,34 +233,16 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
         {6, 7}
     };
 
-    static double transformation[4 * 4] = {0.866025, 0, -0.5, 400,
-                                           -0.25, 0.866025, -0.433013, 400,
-                                           0.433013, 0.5, 0.75, 1000,
-                                           0, 0, 0, 1};
-
-    double inputTransformation[4 * 4] = {0.999998, 0, -0.00174533, 1.74594,
-                                         0, 1, 0, 0,
-                                         0.00174533, 0, 0.999998, -0.696608,
-                                         0, 0, 0, 1};
-
-    double *devInputTransformation;
-    cudaMalloc(&devInputTransformation, 4 * 4 * sizeof(double));
-    cudaMemcpy(devInputTransformation, inputTransformation, 4 * 4 * sizeof(double), cudaMemcpyHostToDevice);
-
     double *devTransformation;
-    cudaMalloc(&devTransformation, 4 * 4 * sizeof(double));
-    cudaMemcpy(devTransformation, transformation, 4 * 4 * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMalloc(&devTransformation, transformationMatrixSize);
+    cudaMemcpy(devTransformation, transformation, transformationMatrixSize, cudaMemcpyHostToDevice);
 
-    double *devResult;
-    cudaMalloc(&devResult, 4 * 4 * sizeof(double));
+    kernelCompose<<<1, matrixDim>>>(devInputTransformation, devTransformation, devResult);
 
-    dim3 blockDim(4, 4);
-    kernelCompose<<<1, blockDim>>>(devInputTransformation, devTransformation, devResult);
-
-    cudaMemcpy(transformation, devResult, 4 * 4 * sizeof(double), cudaMemcpyDeviceToHost);
-
+    cudaMemcpy(transformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(devTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+    
     cudaFree(devInputTransformation);
-    cudaFree(devTransformation);
 
     VERTEX transformedVertices[vertexCount];
 
@@ -148,7 +250,23 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
      *    RENDERING ZONE     *
      * ===================== */
 
-    /* Allocates all necessary GPU memory*/
+    /* Changes origin from bottom left corner to center of screen */
+    double screenTransform[4 * 4] = {1, 0, 0, (double) buffer->info.bmiHeader.biWidth / 2,
+                                     0, 1, 0, (double) buffer->info.bmiHeader.biHeight / 2,
+                                     0, 0, 1, 0,
+                                     0, 0, 0, 1};
+    
+    double *devScreenTransform;
+    cudaMalloc(&devScreenTransform, transformationMatrixSize);
+    cudaMemcpy(devScreenTransform, screenTransform, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+
+    kernelCompose<<<1, matrixDim>>>(devScreenTransform, devTransformation, devResult);
+
+    cudaFree(devTransformation);
+    cudaFree(devScreenTransform);
+
+    /* Transforms all vertices */
     VERTEX *devVertices;
     cudaMalloc(&devVertices, vertexCount * sizeof(VERTEX));
     cudaMemcpy(devVertices, vertices, vertexCount * sizeof(VERTEX), cudaMemcpyHostToDevice);
@@ -174,11 +292,12 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     {
         EDGE edge = edges[i];
 
-        
         int x0 = (int)transformedVertices[edge.a].x;
         int y0 = (int)transformedVertices[edge.a].y;
         int x1 = (int)transformedVertices[edge.b].x;
         int y1 = (int)transformedVertices[edge.b].y;
+
+        if (transformedVertices[edge.a].z < 0 || transformedVertices[edge.b].z < 0) continue;
 
         int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
         int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -186,7 +305,7 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
 
         while (true)
         {
-            if (x0 < buffer->info.bmiHeader.biWidth && x0 >= 0 && y0 < buffer->info.bmiHeader.biHeight && y0 >= 0 && transformedVertices[edge.a].z >= 0 && transformedVertices[edge.b].z >= 0)
+            if (x0 < buffer->info.bmiHeader.biWidth && x0 >= 0 && y0 < buffer->info.bmiHeader.biHeight && y0 >= 0)
                 DrawPoint(buffer, x0, y0);
 
             if (x0 == x1 && y0 == y1) break;
