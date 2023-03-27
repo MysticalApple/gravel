@@ -198,6 +198,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
         // printf("%f milliseconds\n", (double) (1000 * (end - start)) / CLOCKS_PER_SEC);
     }
 
+    free(vertices);
+    free(edges);
+
     ReleaseDC(windowHandle, deviceContext);
 
     return 0;
