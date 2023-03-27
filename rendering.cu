@@ -1,4 +1,13 @@
 #include "rendering.h"
+#include <stdint.h>
+
+/* Sets a given pixel to white */
+void DrawPoint(win32_offscreen_buffer *buffer, int x0, int y0)
+{
+    uint32_t *pixel = (uint32_t *)buffer->memory + (int)y0 * buffer->info.bmiHeader.biWidth + (int)x0;
+
+    *pixel = INT_MAX;
+}
 
 /* Just your average matrix multiplication */    
 __global__ void kernelTransform(double *transformation, VERTEX *vertices, VERTEX *transformedVertices)

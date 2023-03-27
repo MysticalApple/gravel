@@ -8,13 +8,6 @@
 #include <math.h>
 #include <time.h>
 
-static void DrawPoint(win32_offscreen_buffer *buffer, int x0, int y0)
-{
-    uint32_t *pixel = (uint32_t *)buffer->memory + (int)y0 * buffer->info.bmiHeader.biWidth + (int)x0;
-
-    *pixel = INT_MAX;
-}
-
 /* NOTE: The following code is completely illogical. */
 void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX *vertices, EDGE *edges, const unsigned int vertexCount, const unsigned int edgeCount, time_t timeInit)
 {
@@ -186,6 +179,27 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX 
         cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
 
         cudaFree(devTranslateY);
+    }
+
+    /* Dilating */
+    if (buttonX ^ buttonY)
+    {
+        double dilationFactor = buttonX ? 1 + (speed * 0.001) : 1 - (speed * 0.01);
+
+        double dilate[4 * 4] = {dilationFactor, 0, 0, 0,
+                                0, dilationFactor, 0, 0,
+                                0, 0, dilationFactor, 0,
+                                0, 0, 0, 1};
+
+        double *devDilate;
+        cudaMalloc(&devDilate, transformationMatrixSize);
+        cudaMemcpy(devDilate, dilate, transformationMatrixSize, cudaMemcpyHostToDevice);
+
+        kernelCompose<<<1, matrixDim>>>(devDilate, devInputTransformation, devResult);
+
+        cudaMemcpy(devInputTransformation, devResult, transformationMatrixSize, cudaMemcpyDeviceToDevice);
+
+        cudaFree(dilate);
     }
 
     /* Resets camera */
