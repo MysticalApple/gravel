@@ -1,14 +1,6 @@
 #include "rendering.h"
 #include <stdint.h>
 
-/* Sets a given pixel to white */
-void DrawPoint(win32_offscreen_buffer *buffer, int x0, int y0)
-{
-    uint32_t *pixel = (uint32_t *)buffer->memory + (int)y0 * buffer->info.bmiHeader.biWidth + (int)x0;
-
-    *pixel = INT_MAX;
-}
-
 /* Just your average matrix multiplication */    
 __global__ void kernelTransform(double *transformation, VERTEX *vertices, VERTEX *transformedVertices)
 {
@@ -41,4 +33,49 @@ __global__ void kernelCompose(double *a, double *b, double *result)
         c_value += a[row * 4 + i] * b[i * 4 + col];
     }
     result[row * 4 + col] = c_value;
+}
+
+/* Bresenham Line Drawing Algorithm
+   Copied from https://gist.github.com/bert/1085538#file-plot_line-c */
+__global__ void kernelDrawLine(void *bufferMemory, int width, int height, VERTEX *transformedVertices, EDGE *edges)
+{
+    EDGE edge = edges[blockIdx.x];
+
+    int x0 = (int)transformedVertices[edge.a].x;
+    int y0 = (int)transformedVertices[edge.a].y;
+    int x1 = (int)transformedVertices[edge.b].x;
+    int y1 = (int)transformedVertices[edge.b].y;
+
+    if (transformedVertices[edge.a].z < 0 || transformedVertices[edge.b].z < 0)
+        return;
+
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2; /* error value e_xy */
+
+    while (true)
+    {
+        if (x0 < width && x0 >= 0 && y0 < height && y0 >= 0)
+        {
+            uint32_t *pixel = (uint32_t *)bufferMemory + (int)y0 * width + (int)x0;
+
+            *pixel = INT_MAX;
+        }
+
+        if (x0 == x1 && y0 == y1)
+            break;
+
+        e2 = 2 * err;
+        if (e2 >= dy)
+        {
+            err += dy;
+            x0 += sx;
+        } /* e_xy+e_x > 0 */
+
+        if (e2 <= dx)
+        {
+            err += dx;
+            y0 += sy;
+        } /* e_xy+e_y < 0 */
+    }
 }

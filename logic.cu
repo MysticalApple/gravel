@@ -184,7 +184,7 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX 
     /* Dilating */
     if (buttonX ^ buttonY)
     {
-        double dilationFactor = buttonX ? 1 + (speed * 0.001) : 1 - (speed * 0.01);
+        double dilationFactor = buttonX ? 1 + (speed * 0.005) : 1 - (speed * 0.005);
 
         double dilate[4 * 4] = {dilationFactor, 0, 0, 0,
                                 0, dilationFactor, 0, 0,
@@ -227,8 +227,6 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX 
     
     cudaFree(devInputTransformation);
 
-    VERTEX *transformedVertices = (VERTEX *)malloc(vertexCount * sizeof(VERTEX));
-
     /* ===================== *
      *    RENDERING ZONE     *
      * ===================== */
@@ -259,54 +257,23 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX 
 
     kernelTransform<<<vertexCount, 3>>>(devResult, devVertices, devTransformedVertices);
 
-    cudaMemcpy(transformedVertices, devTransformedVertices, vertexCount * sizeof(VERTEX), cudaMemcpyDeviceToHost);
-
     cudaFree(devVertices);
-    cudaFree(devTransformedVertices);
     cudaFree(devResult);
 
 
     /* Clears window to black */
-    memset(buffer->memory, 0, buffer->info.bmiHeader.biWidth * buffer->info.bmiHeader.biHeight * buffer->bytesPerPixel);
+    void *devBufferMemory;
+    cudaMalloc(&devBufferMemory, (buffer->info.bmiHeader.biWidth * buffer->info.bmiHeader.biHeight) * buffer->bytesPerPixel);
 
-    /* Bresenham Line Drawing Algorithm */
-    /* Copied from https://gist.github.com/bert/1085538#file-plot_line-c */
-    for (int i = 0; i < edgeCount; i++)
-    {
-        EDGE edge = edges[i];
+    EDGE *devEdges;
+    cudaMalloc(&devEdges, edgeCount * sizeof(EDGE));
+    cudaMemcpy(devEdges, edges, edgeCount * sizeof(EDGE), cudaMemcpyHostToDevice);
 
-        int x0 = (int)transformedVertices[edge.a].x;
-        int y0 = (int)transformedVertices[edge.a].y;
-        int x1 = (int)transformedVertices[edge.b].x;
-        int y1 = (int)transformedVertices[edge.b].y;
+    kernelDrawLine<<<edgeCount, 1>>>(devBufferMemory, buffer->info.bmiHeader.biWidth, buffer->info.bmiHeader.biHeight, devTransformedVertices, devEdges);
 
-        if (transformedVertices[edge.a].z < 0 || transformedVertices[edge.b].z < 0) continue;
+    cudaMemcpy(buffer->memory, devBufferMemory, (buffer->info.bmiHeader.biWidth * buffer->info.bmiHeader.biHeight) * buffer->bytesPerPixel, cudaMemcpyDeviceToHost);
 
-        int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-        int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-        int err = dx + dy, e2; /* error value e_xy */
-
-        while (true)
-        {
-            if (x0 < buffer->info.bmiHeader.biWidth && x0 >= 0 && y0 < buffer->info.bmiHeader.biHeight && y0 >= 0)
-                DrawPoint(buffer, x0, y0);
-
-            if (x0 == x1 && y0 == y1) break;
-            
-            e2 = 2 * err;
-            if (e2 >= dy)
-            {
-                err += dy;
-                x0 += sx;
-            } /* e_xy+e_x > 0 */
-            
-            if (e2 <= dx)
-            {
-                err += dx;
-                y0 += sy;
-            } /* e_xy+e_y < 0 */
-        }
-    }
-    
-    free(transformedVertices);
+    cudaFree(devBufferMemory);
+    cudaFree(devTransformedVertices);
+    cudaFree(devEdges);
 }
