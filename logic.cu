@@ -91,7 +91,6 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX 
     if (abs(thumbStickRightX) > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
     {
         double theta = copysign(speed, thumbStickRightX) * (abs(thumbStickRightX) - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) / (double)(SHRT_MAX - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
-        printf("%lf\n", theta);
         theta = theta * 2 * M_PI / 360;
 
         double rotateY[4 * 4] = {cos(theta), 0, -sin(theta), 0,
@@ -114,7 +113,6 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX 
     if (abs(thumbStickRightY) > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
     {
         double theta = copysign(speed, thumbStickRightY) * (abs(thumbStickRightY) - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) / (double)(SHRT_MAX - XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
-        printf("%lf\n", theta);
         theta = theta * 2 * M_PI / 360;
 
         double rotateX[4 * 4] = {1, 0, 0, 0,
