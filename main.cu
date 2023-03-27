@@ -16,6 +16,7 @@
 
 #include "rendering.h"
 #include "logic.h"
+#include "parsing.h"
 
 #define internal static
 
@@ -97,38 +98,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
         return 1;
     }
 
-    const static int vertexCount = 8;
-    const static int edgeCount = 12;
+    /* File parsing into vertices and edges */
+    unsigned int vertexCount;
+    unsigned int edgeCount;
 
-    static VERTEX vertices[vertexCount] =
-        {
-            {400, 0, 0},
-            {0, 400, 0},
-            {0, 0, 400},
-            {0, 0, 0},
-            {400, 0, 400},
-            {0, 400, 400},
-            {400, 400, 400},
-            {400, 400, 0},
-        };
+    fscanf(object, "%u\n", &vertexCount);
+    VERTEX *vertices = (VERTEX *)malloc(vertexCount * sizeof(VERTEX));
+    parseVertices(object, vertices, vertexCount);
 
-    static EDGE edges[edgeCount] = {
-        {0, 3},
-        {0, 4},
-        {0, 7},
-        {1, 3},
-        {1, 5},
-        {1, 7},
-        {2, 3},
-        {2, 4},
-        {2, 5},
-        {6, 4},
-        {6, 5},
-        {6, 7}};
+    fscanf(object, "%u\n", &edgeCount);
+    EDGE *edges = (EDGE *)malloc(edgeCount * sizeof(EDGE));
+    parseEdges(object, edges, edgeCount);
 
     fclose(object);
 
-
+    /* hehe funny xbox controller*/
     win32_LoadXInput();
 
     /* Registers the window class */
@@ -271,7 +255,7 @@ LRESULT CALLBACK win32_WindowProc(HWND windowHandle, UINT uMsg, WPARAM wParam, L
     }
     break;
 
-    // When the window is resized
+    /* When the window is resized */
     case WM_PAINT:
     {
         PAINTSTRUCT paint;
@@ -301,14 +285,14 @@ internal void win32_ResizeDIBSection(win32_offscreen_buffer *buffer, int width, 
         VirtualFree(buffer->memory, 0, MEM_RELEASE);
     }
 
-    buffer->bytesPerPixel = 4; // RGB + padding for dword alignment
+    buffer->bytesPerPixel = 4; /* RGB + padding for dword alignment */
 
     /* Creates bitmap */
     buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);
     buffer->info.bmiHeader.biWidth = width;
     buffer->info.bmiHeader.biHeight = height;
     buffer->info.bmiHeader.biPlanes = 1;
-    buffer->info.bmiHeader.biBitCount = 8 * buffer->bytesPerPixel; // 8 bits per bytes
+    buffer->info.bmiHeader.biBitCount = 8 * buffer->bytesPerPixel; /* 8 bits per bytes */
     buffer->info.bmiHeader.biCompression = BI_RGB;
 
     int bitmapMemorySize = (width * height) * buffer->bytesPerPixel;
