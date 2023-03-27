@@ -16,7 +16,7 @@ static void DrawPoint(win32_offscreen_buffer *buffer, int x0, int y0)
 }
 
 /* NOTE: The following code is completely illogical. */
-void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t timeInit)
+void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX *vertices, EDGE *edges, const int vertexCount, const int edgeCount, time_t timeInit)
 {
     /* ========== *
      *  FPS INFO  *
@@ -197,41 +197,12 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
                                   0, 1, 0, 0,
                                   0, 0, 1, 0,
                                   0, 0, 0, 1};
-                                  
+
         memcpy(transformation, identity, transformationMatrixSize);
     }
 
     /* Change to reading from file later
        Probably move to main, only needs to run once */
-    const static int vertexCount = 8;
-    const static int edgeCount = 12;
-
-    static VERTEX vertices[vertexCount] =
-        {
-            {400, 0, 0},
-            {0, 400, 0},
-            {0, 0, 400},
-            {0, 0, 0},
-            {400, 0, 400},
-            {0, 400, 400},
-            {400, 400, 400},
-            {400, 400, 0},
-        };
-
-    static EDGE edges[edgeCount] = {
-        {0, 3},
-        {0, 4},
-        {0, 7},
-        {1, 3},
-        {1, 5},
-        {1, 7},
-        {2, 3},
-        {2, 4},
-        {2, 5},
-        {6, 4},
-        {6, 5},
-        {6, 7}
-    };
 
     double *devTransformation;
     cudaMalloc(&devTransformation, transformationMatrixSize);
@@ -244,7 +215,7 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
     
     cudaFree(devInputTransformation);
 
-    VERTEX transformedVertices[vertexCount];
+    VERTEX *transformedVertices = (VERTEX *)malloc(vertexCount * sizeof(VERTEX));
 
     /* ===================== *
      *    RENDERING ZONE     *
@@ -324,5 +295,6 @@ void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t 
             } /* e_xy+e_y < 0 */
         }
     }
-
+    
+    free(transformedVertices);
 }

@@ -87,9 +87,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 {
     /* Unused WinMain variables to avoid compiler complaints */
     (void)hPrevInstance;
-    (void)lpCmdLine;
 
     const time_t timeInit = time(NULL);
+
+    FILE *object = fopen(lpCmdLine, "r");
+    if (!object)
+    {
+        printf("No such file exists.");
+        return 1;
+    }
+
+    const static int vertexCount = 8;
+    const static int edgeCount = 12;
+
+    static VERTEX vertices[vertexCount] =
+        {
+            {400, 0, 0},
+            {0, 400, 0},
+            {0, 0, 400},
+            {0, 0, 0},
+            {400, 0, 400},
+            {0, 400, 400},
+            {400, 400, 400},
+            {400, 400, 0},
+        };
+
+    static EDGE edges[edgeCount] = {
+        {0, 3},
+        {0, 4},
+        {0, 7},
+        {1, 3},
+        {1, 5},
+        {1, 7},
+        {2, 3},
+        {2, 4},
+        {2, 5},
+        {6, 4},
+        {6, 5},
+        {6, 7}};
+
+    fclose(object);
+
 
     win32_LoadXInput();
 
@@ -166,7 +204,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
             }
         }
 
-        HandleLogic(&globalBackBuffer, pad, timeInit);
+        HandleLogic(&globalBackBuffer, pad, vertices, edges, vertexCount, edgeCount, timeInit);
 
         win32_window_dimensions dimensions = win32_GetWindowDimensions(windowHandle);
         win32_CopyBufferToWindow(deviceContext, &globalBackBuffer,

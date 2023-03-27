@@ -5,4 +5,4 @@
 
 #include "rendering.h"
 
-void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, time_t timeInit);
+void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX *vertices, EDGE *edges, const int vertexCount, const int edgeCount, time_t timeInit);
