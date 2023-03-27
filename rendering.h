@@ -1,4 +1,5 @@
 #pragma once
+#include "parsing.h"
 #include <windows.h>
 
 typedef struct
@@ -7,20 +8,6 @@ typedef struct
     void *memory;
     int bytesPerPixel;
 } win32_offscreen_buffer;
-
-typedef struct
-{
-    double x;
-    double y;
-    double z;
-} VERTEX;
-
-typedef struct
-{
-    unsigned short a;
-    unsigned short b;
-} EDGE;
-
 
 __global__ void kernelTransform(double *transformation, VERTEX *vertices, VERTEX *transformedVertices);
 __global__ void kernelCompose(double *a, double *b, double *result);

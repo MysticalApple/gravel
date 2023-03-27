@@ -16,6 +16,7 @@
 
 #include "rendering.h"
 #include "logic.h"
+#include "parsing.h"
 
 #define internal static
 
@@ -97,34 +98,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
         return 1;
     }
 
-    const static int vertexCount = 8;
-    const static int edgeCount = 12;
+    unsigned int vertexCount;
+    unsigned int edgeCount;
 
-    static VERTEX vertices[vertexCount] =
-        {
-            {400, 0, 0},
-            {0, 400, 0},
-            {0, 0, 400},
-            {0, 0, 0},
-            {400, 0, 400},
-            {0, 400, 400},
-            {400, 400, 400},
-            {400, 400, 0},
-        };
+    fscanf(object, "%u", &vertexCount);
+    VERTEX *vertices = (VERTEX *)malloc(vertexCount * sizeof(VERTEX));
+    parseVertices(object, vertices, vertexCount);
 
-    static EDGE edges[edgeCount] = {
-        {0, 3},
-        {0, 4},
-        {0, 7},
-        {1, 3},
-        {1, 5},
-        {1, 7},
-        {2, 3},
-        {2, 4},
-        {2, 5},
-        {6, 4},
-        {6, 5},
-        {6, 7}};
+    fscanf(object, "%u", &edgeCount);
+    EDGE *edges = (EDGE *)malloc(edgeCount * sizeof(EDGE));
+    parseEdges(object, edges, edgeCount);
 
     fclose(object);
 

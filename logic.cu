@@ -16,7 +16,7 @@ static void DrawPoint(win32_offscreen_buffer *buffer, int x0, int y0)
 }
 
 /* NOTE: The following code is completely illogical. */
-void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX *vertices, EDGE *edges, const int vertexCount, const int edgeCount, time_t timeInit)
+void HandleLogic(win32_offscreen_buffer *buffer, XINPUT_GAMEPAD gamepad, VERTEX *vertices, EDGE *edges, const unsigned int vertexCount, const unsigned int edgeCount, time_t timeInit)
 {
     /* ========== *
      *  FPS INFO  *
